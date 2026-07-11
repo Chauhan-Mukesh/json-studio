@@ -23,6 +23,42 @@ Everything below is COPY-PASTE runnable. Anything you must change is written in
 <angle-brackets>.
 
 --------------------------------------------------------------------------------
+THIS REPO'S CONCRETE URLS (quick lookup — update if repo is renamed/transferred)
+--------------------------------------------------------------------------------
+
+  Owner / repo:   Chauhan-Mukesh / json-studio
+  Repo URL:       https://github.com/Chauhan-Mukesh/json-studio
+  Clone URL:      https://github.com/Chauhan-Mukesh/json-studio.git
+  Live site:      https://chauhan-mukesh.github.io/json-studio/
+  Actions tab:    https://github.com/Chauhan-Mukesh/json-studio/actions
+  Releases:       https://github.com/Chauhan-Mukesh/json-studio/releases
+  BUILD_INFO:     https://chauhan-mukesh.github.io/json-studio/BUILD_INFO.txt
+
+--------------------------------------------------------------------------------
+SHELL NOTE — bash vs Windows CMD
+--------------------------------------------------------------------------------
+
+Commands below use bash line-continuation (backslash `\` at end of line).
+On WSL / Git Bash / macOS / Linux, paste as-is.
+
+On Windows CMD ("Command Prompt"), the `\` does NOT continue lines — CMD reads
+each line separately and errors. Two options in CMD:
+
+  Option 1 — join the command to a single line, removing every `\`:
+      git add file1 file2 file3 README.md
+
+  Option 2 — replace `\` at end of line with `^` (CMD's continuation char):
+      git add file1 ^
+              file2 ^
+              file3
+
+Windows PowerShell accepts backtick ` for continuation, or just single lines.
+
+One Windows-only cosmetic warning you WILL see and can safely ignore:
+    warning: in the working copy of '<file>', LF will be replaced by CRLF
+It's git normalizing line endings on checkout. No action needed.
+
+--------------------------------------------------------------------------------
 PART A — ONE-TIME SETUP (do these once, on the very first deploy)
 --------------------------------------------------------------------------------
 
@@ -200,20 +236,32 @@ C8. Create the GitHub Release from the tag. Two options:
 
     Option 1 — gh CLI (fast, scriptable):
 
+        # bash / WSL:
         gh release create v<X.Y.Z> \
           --title "v<X.Y.Z>" \
           --notes-file CHANGELOG.md \
           json-studio.html                       # attach the single-file build
 
+        # Windows CMD (single line):
+        gh release create v<X.Y.Z> --title "v<X.Y.Z>" --notes-file CHANGELOG.md json-studio.html
+
+        Notes:
+        - By default, `gh release create` publishes as "Latest" and NOT pre-release —
+          matches the web-UI defaults below.
+        - Add `--prerelease` if this is an alpha / beta / RC.
+        - Add `--draft` to save as draft (invisible to the public until you publish).
+
     Option 2 — web UI:
         Repo → Releases → "Draft a new release"
-          Choose tag:  v<X.Y.Z>            (the one you just pushed)
-          Target:      main
+          Choose tag:    v<X.Y.Z>            (the one you just pushed)
+          Target:        main
           Release title: v<X.Y.Z>
-          Description: paste the CHANGELOG section for this version
-          [x] Set as the latest release
-          Attach: json-studio.html
-          → Publish release
+          Description:   paste the CHANGELOG section for this version
+          Release label: [x] None             ← stable production release
+                         [ ] Pre-release      ← only for alpha / beta / RC
+          [x] Set as the latest release       ← DO check this for stable releases
+          Attach binaries: drag `json-studio.html` into the attach box (~0.17 MB)
+          → click "Publish release" (NOT "Save draft" unless you want it hidden)
 
 C9. Confirm the live site now serves the new version:
 
@@ -342,19 +390,70 @@ G7. Accidentally pushed a bad tag to remote
       doing this — anyone who already pulled the tag will have to fix
       their local copy with `git fetch --tags --prune --prune-tags`.
 
+G8. PR shows "2 skipped, 2 successful checks" — is that a problem?
+    → No, this is exactly what a healthy PR should look like.
+      The workflow has `if: github.event_name == 'push' && github.ref == 'refs/heads/main'`
+      on both the `build` and `deploy` jobs. This is a deliberate safety feature:
+      a PR (especially from a fork) must never be able to publish to the live
+      site. Only push-to-main triggers those two jobs.
+      A healthy PR shows:
+        [x] Test (Playwright)         successful   (this is the "Required" check)
+        [x] GitGuardian Security      successful
+        [/] Build Pages site          skipped      (correct — PRs never publish)
+        [/] Deploy to GitHub Pages    skipped      (correct — PRs never publish)
+      After merging the PR into main, all three jobs run and the site deploys.
+
+G9. Windows CMD errors like "'tests' is not recognized as an internal command"
+    when copy-pasting multi-line git commands
+    → CMD doesn't understand bash's `\` line-continuation. Either join to a
+      single line, or use `^` at end of each line. See SHELL NOTE at the top
+      of this file.
+
+G10. First-time `gh` CLI authentication
+    → After `sudo apt install gh` (WSL) or `winget install --id GitHub.cli` (Windows):
+          gh auth login
+          # choose: GitHub.com → HTTPS → Y (authenticate git) → Login with a web browser
+          # follow the code prompt in your browser
+      Then git push and gh commands both work without password prompts.
+
+G11. `git push` rejected as non-fast-forward on first push
+    → Usually caused by picking a README / .gitignore / LICENSE in the GitHub
+      "Create repository" wizard, which added an initial commit your local
+      main doesn't have. Fix:
+          git pull --rebase origin main
+          git push -u origin main
+      Recommendation: create GitHub repos empty (no README/gitignore/license
+      from the wizard) since this project already ships those files.
+
+G12. `git status` on Windows shows "LF will be replaced by CRLF" warnings
+    → Harmless. Git is normalizing text-file line endings on checkout because
+      Windows uses CRLF and the repo canonical form is LF. No action needed.
+      To silence: `git config --global core.autocrlf true` (already the
+      default on git-for-windows installs).
+
 --------------------------------------------------------------------------------
 PART H — CHECKLIST (print this, tick each box for every release)
 --------------------------------------------------------------------------------
 
     [ ] main is green (last Actions run passed)
     [ ] Created release/v<X.Y.Z> branch from main
-    [ ] Bumped version in package.json (correct semver level)
+    [ ] Bumped version in package.json (correct semver level: patch/minor/major)
     [ ] Updated CHANGELOG.md with dated section
-    [ ] Ran `npm test` locally on the release branch → 33+ passed
-    [ ] Opened Release PR, got review, CI green, squash-merged into main
-    [ ] Created annotated tag v<X.Y.Z> on main, pushed the tag
-    [ ] Published GitHub Release with CHANGELOG notes + json-studio.html asset
-    [ ] Verified live URL and BUILD_INFO.txt matches the release SHA
+    [ ] Ran `npm test` locally on the release branch → all specs green
+    [ ] Opened Release PR
+        [ ] PR shows: 2 successful (Test + GitGuardian), 2 skipped (Build + Deploy) — expected
+        [ ] Got review, then squash-merged into main
+    [ ] After merge: main Actions run shows all 3 jobs green (test → build → deploy)
+    [ ] Created annotated tag v<X.Y.Z> on main, pushed the tag only
+    [ ] Published GitHub Release
+        [ ] Tag:            v<X.Y.Z>
+        [ ] Target:         main
+        [ ] Release label:  None (NOT Pre-release)
+        [ ] Set as the latest release: ticked
+        [ ] Attached asset: json-studio.html
+        [ ] Notes pasted from CHANGELOG.md
+    [ ] Verified live URL loads and BUILD_INFO.txt commit matches the release SHA
+    [ ] Repo home page's "Releases" widget now shows v<X.Y.Z> (Latest)
 
 ================================================================================
 END OF DEPLOY PLAN — keep this file at the repo root and update it whenever the
