@@ -7,7 +7,7 @@ A single-file, feature-rich, offline JSON viewer / editor / formatter with a Pla
 - **One file:** `json-studio.html` (~250 KB, includes jQuery 3.7.1 inlined).
 - **No network:** default-src `none` CSP; no CDN.
 - **Runs anywhere:** double-click, or `launch-server.bat` for the full experience.
-- **Or just open it in your browser** at the live-demo link above — no install needed.
+- **No install:** open it in your browser at the live demo link above.
 
 ---
 
