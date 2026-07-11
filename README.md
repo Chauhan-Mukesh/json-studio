@@ -1,155 +1,199 @@
 # JSON Studio
 
-**Live demo:** https://chauhan-mukesh.github.io/json-studio/
-
 A single-file, feature-rich, offline JSON viewer / editor / formatter with a Playwright test suite.
 
-- **One file:** `json-studio.html` (~250 KB, includes jQuery 3.7.1 inlined).
-- **No network:** default-src `none` CSP; no CDN.
-- **Runs anywhere:** double-click, or `launch-server.bat` for the full experience.
-- **No install:** open it in your browser at the live demo link above.
+**Live demo:** https://chauhan-mukesh.github.io/json-studio/
 
 ---
 
-## Quick start
+## Why JSON Studio?
 
-Two ways to open:
+- **Single file app:** `json-studio.html` (~250 KB, jQuery 3.7.1 inlined)
+- **Fully offline:** strict CSP (`default-src 'none'`), no CDN dependency
+- **Runs anywhere:** double-click it, or use `launch-server.bat` for full support
+- **Zero setup to try:** open the live demo instantly
 
-### 1. Recommended — via HTTP (all features work)
+---
 
+## Quick Start
+
+### 1) Recommended: Run over HTTP (all features enabled)
+
+```bash
+launch-server.bat        # Windows → opens http://localhost:8765/json-studio.html
 ```
-launch-server.bat        (Windows)   →   opens http://localhost:8765/json-studio.html
-```
 
-or manually:
+Or manually:
 
-```
+```bash
 cd C:\Users\Credencys\Desktop\json-studio
 python -m http.server 8765
 # then open http://localhost:8765/json-studio.html
 ```
 
-### 2. Fastest — double-click
+### 2) Fastest: Open directly (double-click)
 
-Double-click `json-studio.html`. The app runs but a few features are restricted by the browser's `file://` policy (cross-origin URL fetch, download-name suggestions). A dismissable banner explains the trade-off.
+Double-click `json-studio.html`.
+
+The app still works, but some features are restricted by browser `file://` policies
+(e.g., cross-origin URL fetch and download-name suggestions). A dismissible banner
+inside the app explains this trade-off.
 
 ---
 
 ## Features
 
-**Core** — split-pane editor + tree, line numbers, error caret, format / minify / validate,
-indent 2 / 4 / tab.
+### Core
 
-**Editing** — click values to inline-edit; click keys to rename; add / remove / duplicate
-node buttons on hover; type-change dropdown; full undo / redo (Ctrl+Z, Ctrl+Y).
+- Split-pane editor + tree view
+- Line numbers and error caret
+- Format / minify / validate
+- Indent support: 2 / 4 / tab
 
-**Search** — text find (Ctrl+F) with match counter and navigation; JSONPath filter
-supporting `$ . .. [n] [n,m] [*] [?(@.k==\"v\")]` with results list that flashes the
-matching node.
+### Editing
 
-**I/O** — Open from file, paste, URL fetch, and drag-and-drop. Save to `.json` file,
-copy to clipboard, save minified.
+- Click values for inline edit
+- Click keys to rename
+- Add / remove / duplicate nodes on hover
+- Type-change dropdown
+- Full undo / redo (`Ctrl+Z`, `Ctrl+Y`)
 
-**Extras** — Diff two JSONs side-by-side; convert between JSON / CSV / YAML / XML;
-light / dark theme persisted; stats panel (nodes, depth, size, per-type counts,
-longest key / string, duplicate-key warnings).
+### Search
 
-**Keyboard**
+- Text find (`Ctrl+F`) with match counter + next/prev navigation
+- JSONPath filter support:
+  `$`, `.`, `..`, `[n]`, `[n,m]`, `[*]`, `[?(@.k=="v")]`
+- Results list highlights matching nodes
 
-| Action        | Shortcut |
-|---------------|----------|
-| Format        | Ctrl+Shift+F |
-| Minify        | Ctrl+Shift+M |
-| Undo          | Ctrl+Z |
-| Redo          | Ctrl+Y or Ctrl+Shift+Z |
-| Find          | Ctrl+F |
+### Import / Export
+
+- Open from file, paste, URL fetch, drag-and-drop
+- Save to `.json`
+- Copy to clipboard
+- Save minified output
+
+### Extras
+
+- Side-by-side JSON diff
+- JSON ⇄ CSV / YAML / XML conversion
+- Light / dark theme persistence
+- Stats panel (nodes, depth, size, type counts, longest key/string, duplicate-key warnings)
+
+### Keyboard Shortcuts
+
+| Action | Shortcut |
+|---|---|
+| Format | Ctrl+Shift+F |
+| Minify | Ctrl+Shift+M |
+| Undo | Ctrl+Z |
+| Redo | Ctrl+Y or Ctrl+Shift+Z |
+| Find | Ctrl+F |
 | Find next / prev | Enter / Shift+Enter (in Find box) |
-| Save          | Ctrl+S |
-| Open file     | Ctrl+O |
-| Toggle theme  | Ctrl+Shift+D |
-| Close dialog  | Esc |
+| Save | Ctrl+S |
+| Open file | Ctrl+O |
+| Toggle theme | Ctrl+Shift+D |
+| Close dialog | Esc |
+
+---
+
+## Screenshots
+
+### Main Editor + Tree View
+
+<img src="https://github.com/user-attachments/assets/5a81b4c2-6c2d-4506-acc3-9c0feda59d9f" alt="JSON Studio main editor and tree view" />
+
+### Additional UI Preview
+
+<img src="https://github.com/user-attachments/assets/661506ca-b5f1-4284-9d94-618ccc46d8cf" alt="JSON Studio additional interface preview" />
 
 ---
 
 ## Deploy to GitHub Pages
 
-Live at **https://chauhan-mukesh.github.io/json-studio/**.
+Live URL: **https://chauhan-mukesh.github.io/json-studio/**
 
-Push the folder as a repo, enable **Settings → Pages → Source: GitHub Actions**,
-and every push to `main` will test and publish. Full step-by-step instructions
-(including version bumps, tags, and rollback) live in [DEPLOY.txt](DEPLOY.txt).
-Extra notes and troubleshooting in [.github/DEPLOY.md](.github/DEPLOY.md).
+Push this folder as a repository, then enable:
 
-## Running the tests
+**Settings → Pages → Source: GitHub Actions**
 
-Tests use Playwright with Chromium. Everything runs headless from WSL.
+Each push to `main` will run tests and publish.
 
-```
-cd /mnt/c/Users/Credencys/Desktop/json-studio     # WSL path
-npm install                                       # first time only
-npx playwright install chromium                   # first time only (if not cached)
-npx playwright test                               # run all 15 spec files
-npx playwright test --ui                          # interactive UI mode
-```
-
-Reports land in `playwright-report/` (`npx playwright show-report` to view).
-Failures capture screenshot + video + trace under `test-results/`.
-
-The Playwright config launches a python http.server on port 8765 and points tests at
-`http://localhost:8765/json-studio.html`.
+Detailed instructions:
+- [DEPLOY.txt](DEPLOY.txt)
+- [.github/DEPLOY.md](.github/DEPLOY.md)
 
 ---
 
-## Project layout
+## Running Tests
 
+Playwright + Chromium (headless, WSL-compatible):
+
+```bash
+cd /mnt/c/Users/Credencys/Desktop/json-studio
+npm install
+npx playwright install chromium
+npx playwright test
+npx playwright test --ui
 ```
+
+Reports:
+- HTML report: `playwright-report/` (open with `npx playwright show-report`)
+- Failed runs: screenshot + video + trace in `test-results/`
+
+Test config starts `python http.server` on `8765` and targets:
+`http://localhost:8765/json-studio.html`
+
+---
+
+## Project Layout
+
+```text
 json-studio/
-├── json-studio.html          ← the app (self-contained)
-├── launch-server.bat         ← starts python http.server + opens browser
-├── plan.md                   ← design + implementation plan
-├── README.md                 ← this file
-├── package.json              ← @playwright/test dev dep
-├── playwright.config.ts      ← Chromium + webServer config
+├── json-studio.html          # self-contained app
+├── launch-server.bat         # starts local python server + opens browser
+├── plan.md                   # design + implementation plan
+├── README.md                 # this file
+├── package.json              # @playwright/test dev dependency
+├── playwright.config.ts      # Chromium + webServer config
 ├── .gitignore
 └── tests/
-    ├── fixtures.ts           ← sample JSONs
-    ├── helpers.ts            ← page.goto helper + editor accessors
-    └── 01…15-*.spec.ts       ← one spec file per feature area
+    ├── fixtures.ts
+    ├── helpers.ts
+    └── 01…15-*.spec.ts
 ```
 
 ---
 
-## Test coverage matrix
+## Test Coverage Matrix
 
 | # | File | What it verifies |
-|---|------|------------------|
+|---|---|---|
 | 01 | 01-load-and-format | App boots; format button pretty-prints minified input |
 | 02 | 02-minify | Minify strips whitespace and preserves parsed value |
-| 03 | 03-validate-error | Broken JSON surfaces line/col; valid JSON clears state |
+| 03 | 03-validate-error | Broken JSON shows line/col; valid JSON clears state |
 | 04 | 04-tree-expand | Nested JSON renders as tree; toggle collapses/expands |
-| 05 | 05-inline-edit | Click value/number → edit → editor updates round-trip |
-| 06 | 06-add-remove-node | Add key on root, rename it, delete an existing key |
-| 07 | 07-undo-redo | 3 changes; undo restores; redo one step |
+| 05 | 05-inline-edit | Edit value/number and confirm round-trip update |
+| 06 | 06-add-remove-node | Add root key, rename it, delete an existing key |
+| 07 | 07-undo-redo | Multiple changes undo/redo correctly |
 | 08 | 08-find-in-editor | Ctrl+F counts and navigates matches |
-| 09 | 09-jsonpath-filter | JSONPath returns children, filter predicate, UI list |
+| 09 | 09-jsonpath-filter | JSONPath results, predicate support, UI list |
 | 10 | 10-import-paste | Paste modal loads JSON into editor |
-| 11 | 11-import-file | `<input type=file>` load populates editor |
-| 12 | 12-export-download | Download `.json` and minified download both work |
-| 13 | 13-diff | Diff modal reports add / remove / change classes |
-| 14 | 14-convert-csv-yaml-xml | JSON→CSV, CSV→JSON, JSON→YAML, JSON→XML, UI flow |
-| 15 | 15-theme-and-stats | Theme toggle persists over reload; stats correct |
+| 11 | 11-import-file | File input populates editor |
+| 12 | 12-export-download | Normal + minified download flows work |
+| 13 | 13-diff | Diff modal reports add/remove/change classes |
+| 14 | 14-convert-csv-yaml-xml | JSON↔CSV/YAML/XML conversion UI flow |
+| 15 | 15-theme-and-stats | Theme persists; stats are accurate |
 
-25 test cases total across 15 files. Run time ~30 s.
+25 test cases across 15 spec files (about ~30s runtime).
 
 ---
 
-## Notes and trade-offs
+## Notes & Trade-offs
 
-- **URL fetch** requires CORS support on the target host.
-- **YAML/XML converters** are subset implementations, not full spec parsers.
-- **Undo stack** capped at 100 snapshots.
-- **jQuery** inlined at ~90 KB — accepted for full-offline single-file delivery.
-- **file:// origin** — Chrome/Edge treat each file:// URL as a unique origin, which
-  restricts URL fetch and shows the console warning "'file:' URLs are treated as
-  unique security origins". Using `launch-server.bat` (or any http server) removes
-  this restriction.
+- URL fetch depends on CORS support of the target host.
+- YAML/XML converters are intentionally subset implementations.
+- Undo stack is capped at 100 snapshots.
+- Inlined jQuery (~90 KB) is a deliberate trade-off for single-file offline usage.
+- `file://` origin restrictions in Chrome/Edge can limit URL fetch and trigger
+  security-origin warnings; using `launch-server.bat` (or any local HTTP server)
+  removes those restrictions.
