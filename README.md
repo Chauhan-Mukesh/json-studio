@@ -1,8 +1,43 @@
-# JSON Studio
+<h1 align="center">JSON Studio</h1>
 
-A single-file, feature-rich, offline JSON viewer / editor / formatter with a Playwright test suite.
+<p align="center">
+  <em>A single-file, offline JSON viewer, editor, formatter, diff and converter — with a Playwright test suite.</em>
+</p>
 
-**Live demo:** https://chauhan-mukesh.github.io/json-studio/
+<p align="center">
+  <a href="https://chauhan-mukesh.github.io/json-studio/">
+    <img src="https://img.shields.io/badge/live-demo-2ea44f?style=for-the-badge&logo=githubpages&logoColor=white" alt="Live demo" />
+  </a>
+  <a href="https://github.com/Chauhan-Mukesh/json-studio/actions/workflows/ci-and-pages.yml">
+    <img src="https://github.com/Chauhan-Mukesh/json-studio/actions/workflows/ci-and-pages.yml/badge.svg?branch=main" alt="CI status" />
+  </a>
+  <a href="https://github.com/Chauhan-Mukesh/json-studio/releases/latest">
+    <img src="https://img.shields.io/github/v/release/Chauhan-Mukesh/json-studio?display_name=tag&sort=semver" alt="Latest release" />
+  </a>
+  <a href="https://github.com/Chauhan-Mukesh/json-studio">
+    <img src="https://img.shields.io/badge/single--file-HTML-orange?logo=html5&logoColor=white" alt="Single-file HTML" />
+  </a>
+</p>
+
+<p align="center">
+  <strong>Try it in your browser →</strong>
+  <a href="https://chauhan-mukesh.github.io/json-studio/">chauhan-mukesh.github.io/json-studio</a>
+</p>
+
+---
+
+## Table of contents
+
+- [Why JSON Studio?](#why-json-studio)
+- [Quick start](#quick-start)
+- [Features](#features)
+- [Keyboard shortcuts](#keyboard-shortcuts)
+- [Screenshots](#screenshots)
+- [Deploy to GitHub Pages](#deploy-to-github-pages)
+- [Running tests](#running-tests)
+- [Project layout](#project-layout)
+- [Test coverage matrix](#test-coverage-matrix)
+- [Notes and trade-offs](#notes-and-trade-offs)
 
 ---
 
@@ -11,7 +46,7 @@ A single-file, feature-rich, offline JSON viewer / editor / formatter with a Pla
 - **Single file app:** `json-studio.html` (~250 KB, jQuery 3.7.1 inlined)
 - **Fully offline:** strict CSP (`default-src 'none'`), no CDN dependency
 - **Runs anywhere:** double-click it, or use `launch-server.bat` for full support
-- **Zero setup to try:** open the live demo instantly
+- **Zero setup to try:** open the [live demo](https://chauhan-mukesh.github.io/json-studio/) instantly
 
 ---
 
@@ -23,10 +58,10 @@ A single-file, feature-rich, offline JSON viewer / editor / formatter with a Pla
 launch-server.bat        # Windows → opens http://localhost:8765/json-studio.html
 ```
 
-Or manually:
+Or manually (replace `path/to` with wherever you cloned the repo):
 
 ```bash
-cd C:\Users\Credencys\Desktop\json-studio
+cd path/to/json-studio
 python -m http.server 8765
 # then open http://localhost:8765/json-studio.html
 ```
@@ -129,11 +164,11 @@ Detailed instructions:
 Playwright + Chromium (headless, WSL-compatible):
 
 ```bash
-cd /mnt/c/Users/Credencys/Desktop/json-studio
-npm install
-npx playwright install chromium
-npx playwright test
-npx playwright test --ui
+cd path/to/json-studio
+npm install                        # first time only
+npx playwright install chromium    # first time only
+npx playwright test                # run the full suite (headless)
+npx playwright test --ui           # interactive UI mode
 ```
 
 Reports:
@@ -149,17 +184,21 @@ Test config starts `python http.server` on `8765` and targets:
 
 ```text
 json-studio/
-├── json-studio.html          # self-contained app
-├── launch-server.bat         # starts local python server + opens browser
-├── plan.md                   # design + implementation plan
-├── README.md                 # this file
-├── package.json              # @playwright/test dev dependency
-├── playwright.config.ts      # Chromium + webServer config
+├── json-studio.html                  # self-contained app
+├── launch-server.bat                 # starts local python server + opens browser
+├── plan.md                           # design + implementation plan
+├── DEPLOY.txt                        # full release / tag / rollback playbook
+├── README.md                         # this file
+├── package.json                      # @playwright/test dev dependency
+├── playwright.config.ts              # Chromium + webServer config
 ├── .gitignore
+├── .github/
+│   ├── DEPLOY.md                     # GitHub Pages setup + troubleshooting
+│   └── workflows/ci-and-pages.yml    # test → build → deploy pipeline
 └── tests/
     ├── fixtures.ts
     ├── helpers.ts
-    └── 01…15-*.spec.ts
+    └── 01…17-*.spec.ts               # one spec file per feature area
 ```
 
 ---
@@ -168,14 +207,14 @@ json-studio/
 
 | # | File | What it verifies |
 |---|---|---|
-| 01 | 01-load-and-format | App boots; format button pretty-prints minified input |
+| 01 | 01-load-and-format | App boots; format pretty-prints minified input; editor fills its container on load |
 | 02 | 02-minify | Minify strips whitespace and preserves parsed value |
 | 03 | 03-validate-error | Broken JSON shows line/col; valid JSON clears state |
 | 04 | 04-tree-expand | Nested JSON renders as tree; toggle collapses/expands |
 | 05 | 05-inline-edit | Edit value/number and confirm round-trip update |
 | 06 | 06-add-remove-node | Add root key, rename it, delete an existing key |
 | 07 | 07-undo-redo | Multiple changes undo/redo correctly |
-| 08 | 08-find-in-editor | Ctrl+F counts and navigates matches |
+| 08 | 08-find-in-editor | Ctrl+F counts and navigates matches; highlight marks stay inside the textarea |
 | 09 | 09-jsonpath-filter | JSONPath results, predicate support, UI list |
 | 10 | 10-import-paste | Paste modal loads JSON into editor |
 | 11 | 11-import-file | File input populates editor |
@@ -183,12 +222,14 @@ json-studio/
 | 13 | 13-diff | Diff modal reports add/remove/change classes |
 | 14 | 14-convert-csv-yaml-xml | JSON↔CSV/YAML/XML conversion UI flow |
 | 15 | 15-theme-and-stats | Theme persists; stats are accurate |
+| 16 | 16-perf-large-tree | 2000-node tree renders in under 500 ms |
+| 17 | 17-indent-auto-format | Changing indent auto-reformats valid JSON, leaves invalid untouched |
 
-25 test cases across 15 spec files (about ~30s runtime).
+33 test cases across 17 spec files (about ~35s runtime).
 
 ---
 
-## Notes & Trade-offs
+## Notes and trade-offs
 
 - URL fetch depends on CORS support of the target host.
 - YAML/XML converters are intentionally subset implementations.
