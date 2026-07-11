@@ -91,7 +91,7 @@ jobs:
 
       - name: Upload Playwright HTML report
         if: always() # upload even when tests fail — that's when it's most useful
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report-${{ github.run_id }}
           path: playwright-report/
@@ -99,7 +99,7 @@ jobs:
 
       - name: Upload failure traces
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-traces-${{ github.run_id }}
           path: test-results/
