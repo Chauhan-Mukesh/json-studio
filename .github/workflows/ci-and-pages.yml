@@ -146,7 +146,7 @@ jobs:
           echo "::notice title=Site assembled::Ready to deploy from ./site/"
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: site/
 
