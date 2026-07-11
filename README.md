@@ -98,13 +98,13 @@ inside the app explains this trade-off.
 
 ## Screenshots
 
-> Add your attached screenshots/images here under relevant feature areas.
+### Main Editor + Tree View
 
-Recommended placement:
-- Main editor + tree view (Overview/Core)
-- Find + JSONPath (Search)
-- Diff + Convert modals (Extras)
-- Theme + Stats panel (Extras)
+<img src="https://github.com/user-attachments/assets/5a81b4c2-6c2d-4506-acc3-9c0feda59d9f" alt="JSON Studio main editor and tree view" />
+
+### Additional UI Preview
+
+<img src="https://github.com/user-attachments/assets/661506ca-b5f1-4284-9d94-618ccc46d8cf" alt="JSON Studio additional interface preview" />
 
 ---
 
