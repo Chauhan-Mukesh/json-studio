@@ -1,0 +1,24 @@
+# Automated dependency PRs — weekly on Monday morning UTC.
+# Kept narrow: only patch/minor bumps for @playwright/test, since a Playwright
+# major-version jump can require reinstalling browsers and updating APIs.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    ignore:
+      - dependency-name: "@playwright/test"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "chore(ci)"

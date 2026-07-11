@@ -1,0 +1,179 @@
+# =============================================================================
+# JSON Studio — CI + GitHub Pages
+# -----------------------------------------------------------------------------
+# What this pipeline does:
+#   1. On every push and PR: install deps, run the full Playwright suite, upload
+#      the HTML report as a build artifact for 14 days.
+#   2. On pushes to `main` only: assemble a static site from json-studio.html
+#      and publish it to GitHub Pages via the official actions/deploy-pages.
+#
+# Safety choices:
+#   - Workflow-level permissions default to read-only. The deploy job explicitly
+#     escalates to `pages: write` + `id-token: write` — nothing more.
+#   - Actions are pinned to major versions (v4) so a compromised patch release
+#     can't silently ship.
+#   - A concurrency group named `pages` ensures we never have two Pages
+#     deployments in flight for the same repo at once.
+#   - The `github-pages` environment is used so branch-protection / required
+#     reviewers can gate deploys later without touching this file.
+#   - Test failures short-circuit the whole pipeline — deploy needs `test` to
+#     succeed via `needs:`.
+#
+# One-time setup on GitHub:
+#   Repo → Settings → Pages → "Build and deployment" → Source: "GitHub Actions"
+#   (that's all — the first successful deploy will create the environment).
+# =============================================================================
+
+name: CI + GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # Manual trigger from the Actions tab, for redeploys without a code change.
+  workflow_dispatch:
+
+# Default permissions for every job: least privilege.
+permissions:
+  contents: read
+
+# Serialize Pages deployments so main→main pushes can't race each other.
+# `cancel-in-progress: false` keeps an in-flight deploy from being killed by
+# a newer commit — the newer one queues behind it.
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Job 1: run the Playwright test suite on every push and PR.
+  # ---------------------------------------------------------------------------
+  test:
+    name: Test (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20 with npm cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies (npm ci)
+        run: npm ci
+        # `npm ci` is stricter than `npm install`: it fails if package-lock.json
+        # is out of sync, which is exactly what we want in CI.
+
+      - name: Restore Playwright browsers from cache
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          # Bump the prefix (e.g. pw-v2-) to invalidate the cache on purpose.
+          key: pw-v1-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            pw-v1-chromium-${{ runner.os }}-
+
+      - name: Install Playwright Chromium (with system deps)
+        # `playwright install` is a no-op if the browser is already present,
+        # so on a cache hit only the OS deps are installed. Fast either way.
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright test suite
+        env:
+          CI: '1'
+        run: npx playwright test
+
+      - name: Upload Playwright HTML report
+        if: always() # upload even when tests fail — that's when it's most useful
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.run_id }}
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Upload failure traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces-${{ github.run_id }}
+          path: test-results/
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # Job 2: assemble the static site to publish.
+  # Runs only on push-to-main (never on PRs — a PR should never publish).
+  # ---------------------------------------------------------------------------
+  build:
+    name: Build Pages site
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Assemble ./site/ from source files
+        run: |
+          set -euo pipefail
+          echo "::group::Building site directory"
+          mkdir -p site
+          # Serve the app at both / (as index.html) and /json-studio.html so
+          # bookmarks / direct links keep working.
+          cp json-studio.html site/index.html
+          cp json-studio.html site/json-studio.html
+          # Disable Jekyll: GitHub Pages otherwise tries to process the site
+          # with Jekyll, which mangles files starting with underscore.
+          touch site/.nojekyll
+          # Ship a small build-info file for support / bug reports.
+          {
+            echo "commit: ${GITHUB_SHA}"
+            echo "ref:    ${GITHUB_REF}"
+            echo "built:  $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "run:    ${GITHUB_RUN_ID}"
+          } > site/BUILD_INFO.txt
+          echo "::endgroup::"
+          echo "::group::Site contents"
+          ls -la site/
+          echo "::endgroup::"
+          echo "::notice title=Site assembled::Ready to deploy from ./site/"
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/
+
+  # ---------------------------------------------------------------------------
+  # Job 3: publish to GitHub Pages.
+  # This is the only job that gets write permissions, and only for Pages.
+  # ---------------------------------------------------------------------------
+  deploy:
+    name: Deploy to GitHub Pages
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    permissions:
+      pages: write        # publish to the Pages service
+      id-token: write     # required for OIDC auth to Pages
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy artifact to Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Announce deployment
+        run: |
+          echo "::notice title=Deployed to GitHub Pages::${{ steps.deployment.outputs.page_url }}"

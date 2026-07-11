@@ -1,0 +1,17 @@
+{
+  "name": "json-studio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Offline, single-file, feature-rich JSON viewer/editor/formatter",
+  "scripts": {
+    "serve": "python3 -m http.server 8765",
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.60.0"
+  }
+}

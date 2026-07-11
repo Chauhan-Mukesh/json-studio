@@ -1,0 +1,362 @@
+================================================================================
+JSON Studio — Deployment, Release, and Tag Management (STEP BY STEP)
+================================================================================
+
+Audience:   the person shipping this repo to GitHub Pages for the first time,
+            and then cutting versioned releases from it going forward.
+
+Environment: Windows workstation with WSL Ubuntu available (only WSL is needed
+            for running the Playwright suite before each release; git itself
+            can run in either).
+
+Repo layout (already in the project — do not recreate):
+  json-studio.html                 the entire app (one file)
+  package.json                     version lives here — bump before each release
+  playwright.config.ts             test runner config
+  tests/                           33 Playwright specs
+  .gitignore                       ignores node_modules, site/, artifacts, etc.
+  .github/workflows/ci-and-pages.yml   CI + Pages workflow (already wired)
+  .github/DEPLOY.md                extra notes / troubleshooting
+  README.md                        product README
+
+Everything below is COPY-PASTE runnable. Anything you must change is written in
+<angle-brackets>.
+
+--------------------------------------------------------------------------------
+PART A — ONE-TIME SETUP (do these once, on the very first deploy)
+--------------------------------------------------------------------------------
+
+A1. Create a GitHub repo (empty — no README, no .gitignore, no LICENSE from
+    GitHub, we already have those). Note the URL, e.g.:
+        https://github.com/<your-user>/json-studio.git
+
+A2. Open a terminal in the project folder:
+
+        cd /mnt/c/Users/Credencys/Desktop/json-studio      # WSL
+        # or
+        cd C:\Users\Credencys\Desktop\json-studio          # Windows PowerShell
+
+A3. Configure git identity (skip if already set globally):
+
+        git config --global user.name  "<Your Name>"
+        git config --global user.email "<you@example.com>"
+
+A4. Initialize the repo, commit everything, push to main:
+
+        git init
+        git branch -m main
+        git add .
+        git commit -m "chore: initial commit — v1.0.0"
+        git remote add origin https://github.com/<your-user>/json-studio.git
+        git push -u origin main
+
+A5. Turn on GitHub Pages (this is the ONLY manual step in the web UI):
+
+        Repo → Settings → Pages → Build and deployment → Source: "GitHub Actions"
+
+    That's it. Do NOT pick a branch or folder — the workflow decides what to
+    ship.
+
+A6. Watch the first deploy:
+
+        Repo → Actions tab → "CI + GitHub Pages" → newest run
+
+    Three jobs must go green in order: test → build → deploy. When deploy
+    finishes, the run page shows the live URL, e.g.:
+        https://<your-user>.github.io/json-studio/
+
+A7. Protect main (optional but strongly recommended):
+
+        Settings → Branches → Add branch protection rule → Branch name: main
+          [x] Require a pull request before merging
+          [x] Require status checks to pass  →  select "Test (Playwright)"
+          [x] Require branches to be up to date before merging
+          [x] Do not allow bypassing the above settings
+
+    Once this is on, direct pushes to main are blocked — you release only via
+    PR + green CI. That is how you want it.
+
+--------------------------------------------------------------------------------
+PART B — DAY-TO-DAY DEVELOPMENT LOOP (no release, just a fix or feature)
+--------------------------------------------------------------------------------
+
+B1. Sync main and start a branch:
+
+        git checkout main
+        git pull --ff-only
+        git checkout -b <feature-branch-name>          # e.g. fix/editor-collapse
+
+B2. Make edits, run tests locally (WSL):
+
+        cd /mnt/c/Users/Credencys/Desktop/json-studio
+        npm ci                          # first time only, or after lock changes
+        npx playwright install --with-deps chromium    # first time only
+        npm test                         # must be green before commit
+
+B3. Commit and push:
+
+        git add <files>
+        git status                       # sanity-check what's staged
+        git commit -m "<type>: <short summary>"
+        # <type> = fix | feat | chore | docs | refactor | test | perf
+        git push -u origin <feature-branch-name>
+
+B4. Open a Pull Request into main (via GitHub UI, or with gh CLI):
+
+        gh pr create --base main --head <feature-branch-name> \
+          --title "<type>: <short summary>" \
+          --body  "What changed and why."
+
+    CI runs the Playwright suite on the PR. Nothing deploys from a PR.
+
+B5. After PR is approved and CI is green: merge (Squash merge recommended so
+    main stays clean, one commit per PR). The moment the merge lands on main,
+    the workflow builds ./site/ and deploys it to Pages. No release tag yet.
+
+--------------------------------------------------------------------------------
+PART C — CUTTING A RELEASE (semantic version + git tag + GitHub Release)
+--------------------------------------------------------------------------------
+
+Versioning rules (semver, https://semver.org):
+    MAJOR.MINOR.PATCH
+    MAJOR  — user-visible breaking change (rare for this app)
+    MINOR  — new feature, backwards compatible (e.g. new "Diff" mode)
+    PATCH  — bug fix, no behavior change to existing features
+
+The next release starts from main after your fix/feature is merged. Do the
+release from a short-lived release branch so you can review the version bump
+in a PR before it lands.
+
+C1. Sync main and create a release branch:
+
+        git checkout main
+        git pull --ff-only
+        git checkout -b release/v<X.Y.Z>          # e.g. release/v1.0.1
+
+C2. Bump the version in package.json using npm (this also updates
+    package-lock.json and creates a commit for you — WITHOUT tagging yet,
+    because we tag on main after merge, not on the release branch):
+
+        # Pick ONE of these three depending on change type:
+        npm version patch --no-git-tag-version   # 1.0.0 → 1.0.1
+        npm version minor --no-git-tag-version   # 1.0.0 → 1.1.0
+        npm version major --no-git-tag-version   # 1.0.0 → 2.0.0
+
+    Verify:
+
+        node -p "require('./package.json').version"
+
+C3. Update the CHANGELOG. If the file doesn't exist yet, create it now:
+
+        CHANGELOG.md format (keep it simple):
+
+            # Changelog
+
+            ## v1.0.1 — 2026-07-11
+            ### Fixed
+            - Editor textarea no longer collapses on load; find highlights
+              now align with matched words.
+            ### Tests
+            - New geometry regression tests in tests/01 and tests/08.
+
+            ## v1.0.0 — 2026-07-03
+            - Initial public release.
+
+C4. Run the FULL test suite locally one last time from the release branch:
+
+        npm ci
+        npm test
+        # expect: "33 passed" (or higher after new tests are added)
+
+C5. Commit and push the release branch:
+
+        git add package.json package-lock.json CHANGELOG.md
+        git commit -m "chore(release): v<X.Y.Z>"
+        git push -u origin release/v<X.Y.Z>
+
+C6. Open a Release PR into main:
+
+        gh pr create --base main --head release/v<X.Y.Z> \
+          --title "Release v<X.Y.Z>" \
+          --body-file CHANGELOG.md
+
+    Wait for CI green, get review, then merge (Squash merge).
+
+C7. After merge, tag main and push the tag. TAGS ARE THE SOURCE OF TRUTH FOR
+    RELEASES — every release must have exactly one annotated tag.
+
+        git checkout main
+        git pull --ff-only
+        # Sanity: the top commit should be "chore(release): v<X.Y.Z>"
+        git log -1 --oneline
+
+        # Create an ANNOTATED tag (do not use lightweight tags for releases):
+        git tag -a v<X.Y.Z> -m "Release v<X.Y.Z>"
+
+        # Push ONLY this tag (not "git push --tags" — that pushes everything):
+        git push origin v<X.Y.Z>
+
+C8. Create the GitHub Release from the tag. Two options:
+
+    Option 1 — gh CLI (fast, scriptable):
+
+        gh release create v<X.Y.Z> \
+          --title "v<X.Y.Z>" \
+          --notes-file CHANGELOG.md \
+          json-studio.html                       # attach the single-file build
+
+    Option 2 — web UI:
+        Repo → Releases → "Draft a new release"
+          Choose tag:  v<X.Y.Z>            (the one you just pushed)
+          Target:      main
+          Release title: v<X.Y.Z>
+          Description: paste the CHANGELOG section for this version
+          [x] Set as the latest release
+          Attach: json-studio.html
+          → Publish release
+
+C9. Confirm the live site now serves the new version:
+
+        Actions → newest run → deploy job → follow the "page_url"
+        Also check site/BUILD_INFO.txt at
+            https://<your-user>.github.io/json-studio/BUILD_INFO.txt
+        The `commit:` line should match the SHA of the release merge commit.
+
+--------------------------------------------------------------------------------
+PART D — HOTFIXES (production is broken, must ship NOW)
+--------------------------------------------------------------------------------
+
+D1. From main, branch a hotfix:
+
+        git checkout main
+        git pull --ff-only
+        git checkout -b hotfix/v<X.Y.Z+1>-<short-slug>
+
+D2. Make the smallest possible fix. Add or update a Playwright test that would
+    have caught the bug — non-negotiable for hotfixes.
+
+D3. Bump PATCH and update CHANGELOG (same commands as C2/C3):
+
+        npm version patch --no-git-tag-version
+        # edit CHANGELOG.md
+
+D4. Push, PR into main, get CI green, merge (Squash).
+
+D5. Tag and release exactly like C7 + C8, using the new PATCH version.
+
+--------------------------------------------------------------------------------
+PART E — ROLLBACK (last deploy is bad, need to revert)
+--------------------------------------------------------------------------------
+
+You have three options, in order of increasing severity.
+
+E1. Re-deploy an older green run (fastest, no code change):
+
+        Repo → Actions → find the last known-good run on main → "Re-run all jobs"
+        Confirm — this rebuilds ./site/ from that commit and republishes.
+
+E2. Revert the bad commit on main (creates a NEW commit, keeps history intact):
+
+        git checkout main
+        git pull --ff-only
+        git revert <bad-commit-sha>              # opens an editor for message
+        git push origin main
+        # The push triggers CI → deploy of the reverted state. Then cut a new
+        # PATCH release (Part C) so the version number reflects reality.
+
+E3. Unpublish (removes the site until you redeploy):
+
+        Repo → Settings → Pages → "Unpublish site"
+        Use only for content emergencies (e.g. accidental secret). Then fix
+        the source, push, and the next workflow run republishes.
+
+--------------------------------------------------------------------------------
+PART F — TAG / RELEASE HYGIENE COMMANDS (reference — you'll need these)
+--------------------------------------------------------------------------------
+
+    # List all local tags (newest first):
+    git tag --sort=-creatordate
+
+    # Show what's inside a tag (message + commit):
+    git show v<X.Y.Z>
+
+    # See which commits are between the last two releases:
+    git log v<older>..v<newer> --oneline
+
+    # Delete a tag YOU HAVEN'T PUSHED YET (typo fix):
+    git tag -d v<X.Y.Z>
+
+    # Delete a tag that WAS already pushed (destructive — coordinate first):
+    git tag -d v<X.Y.Z>                          # local
+    git push origin :refs/tags/v<X.Y.Z>          # remote
+    # Also delete the GitHub Release if one was published:
+    gh release delete v<X.Y.Z> --yes
+
+    # List GitHub Releases:
+    gh release list
+
+    # Download the single-file build attached to a release:
+    gh release download v<X.Y.Z> --pattern json-studio.html
+
+--------------------------------------------------------------------------------
+PART G — TROUBLESHOOTING (in order of "most likely to hit you")
+--------------------------------------------------------------------------------
+
+G1. First push shows Actions tab is empty
+    → Actions are disabled by default on freshly forked repos. Go to
+      Repo → Settings → Actions → General → "Allow all actions and reusable
+      workflows". Save. Push a trivial commit to retrigger.
+
+G2. Deploy job fails with "HttpError: Not Found"
+    → You skipped step A5. Settings → Pages → Source: GitHub Actions.
+      Then Actions → the failed run → "Re-run failed jobs".
+
+G3. `npm ci` fails in CI but works locally
+    → package-lock.json is out of sync. Locally:
+          rm -rf node_modules
+          npm install                    # regenerates the lock properly
+          git add package-lock.json
+          git commit -m "chore: sync package-lock"
+          git push
+
+G4. Playwright fails only in CI ("browser not installed")
+    → The Playwright cache key changed (usually after `@playwright/test`
+      bump). Bump the cache key prefix in ci-and-pages.yml (search for
+      `pw-v1-` → `pw-v2-`) and push.
+
+G5. Tag pushed but no GitHub Release appeared
+    → Pushing a tag does not create a Release automatically in this repo.
+      You must run `gh release create` (step C8) explicitly. This is on
+      purpose — a Release is a public artifact and should be a deliberate
+      action.
+
+G6. Version bumped, tag pushed, but site still serves old version
+    → Deploys are cached at the CDN edge for ~10 minutes. Hard-refresh
+      (Ctrl+Shift+R). If it's still stale after 15 minutes, check
+      site/BUILD_INFO.txt (see step C9) — if `commit:` matches the tag's
+      SHA, the deploy is correct and the browser is holding onto a cached
+      copy. If it doesn't match, re-run the deploy workflow.
+
+G7. Accidentally pushed a bad tag to remote
+    → See PART F "Delete a tag that WAS already pushed". Coordinate before
+      doing this — anyone who already pulled the tag will have to fix
+      their local copy with `git fetch --tags --prune --prune-tags`.
+
+--------------------------------------------------------------------------------
+PART H — CHECKLIST (print this, tick each box for every release)
+--------------------------------------------------------------------------------
+
+    [ ] main is green (last Actions run passed)
+    [ ] Created release/v<X.Y.Z> branch from main
+    [ ] Bumped version in package.json (correct semver level)
+    [ ] Updated CHANGELOG.md with dated section
+    [ ] Ran `npm test` locally on the release branch → 33+ passed
+    [ ] Opened Release PR, got review, CI green, squash-merged into main
+    [ ] Created annotated tag v<X.Y.Z> on main, pushed the tag
+    [ ] Published GitHub Release with CHANGELOG notes + json-studio.html asset
+    [ ] Verified live URL and BUILD_INFO.txt matches the release SHA
+
+================================================================================
+END OF DEPLOY PLAN — keep this file at the repo root and update it whenever the
+release process changes.
+================================================================================
