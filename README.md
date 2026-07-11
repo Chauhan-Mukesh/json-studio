@@ -1,10 +1,13 @@
 # JSON Studio
 
+**Live demo:** https://chauhan-mukesh.github.io/json-studio/
+
 A single-file, feature-rich, offline JSON viewer / editor / formatter with a Playwright test suite.
 
 - **One file:** `json-studio.html` (~250 KB, includes jQuery 3.7.1 inlined).
 - **No network:** default-src `none` CSP; no CDN.
 - **Runs anywhere:** double-click, or `launch-server.bat` for the full experience.
+- **No install:** open it in your browser at the live demo link above.
 
 ---
 
@@ -70,9 +73,12 @@ longest key / string, duplicate-key warnings).
 
 ## Deploy to GitHub Pages
 
+Live at **https://chauhan-mukesh.github.io/json-studio/**.
+
 Push the folder as a repo, enable **Settings → Pages → Source: GitHub Actions**,
-and every push to `main` will test and publish. Full instructions in
-[.github/DEPLOY.md](.github/DEPLOY.md).
+and every push to `main` will test and publish. Full step-by-step instructions
+(including version bumps, tags, and rollback) live in [DEPLOY.txt](DEPLOY.txt).
+Extra notes and troubleshooting in [.github/DEPLOY.md](.github/DEPLOY.md).
 
 ## Running the tests
 
