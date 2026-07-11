@@ -71,7 +71,7 @@ jobs:
 
       - name: Restore Playwright browsers from cache
         id: playwright-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           # Bump the prefix (e.g. pw-v2-) to invalidate the cache on purpose.
