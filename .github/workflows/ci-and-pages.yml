@@ -172,7 +172,7 @@ jobs:
     steps:
       - name: Deploy artifact to Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 
       - name: Announce deployment
         run: |
